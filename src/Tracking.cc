@@ -975,7 +975,6 @@ namespace ORB_SLAM2 {
                     // assemble into H matrix
                     H_meas = arma::join_horiz(H13, H47);
 
-
                     if (flag) {
 //                   LOG_S(INFO) << "H computing success. Frame" << inFrame.mnId;
                     } else {
@@ -1012,8 +1011,9 @@ namespace ORB_SLAM2 {
     }
 
 
-    bool Tracking::neoBuildInfoMat(bool if_has_exframe, Frame &inFrame, Frame &exFrame, bool call_from_motion_model, arma::mat & info_mat,
-                                   vector<MapPointWithScore>& mp_exframe_withScore, vector<neodraw> &neodraw_vec) {
+    bool Tracking::neoBuildInfoMat_new(bool if_has_exframe, Frame &inFrame, Frame &exFrame, bool call_from_motion_model, arma::mat & info_mat,
+                                   vector<MapPointWithScore>& mp_exframe_withScore, vector<neodraw> &neodraw_vec,
+                                   int & nmatches) {
 
         if(!if_has_exframe){
             LOG_S(WARNING) << "No exframe!";
@@ -1112,6 +1112,18 @@ namespace ORB_SLAM2 {
                     pointsInfoMatrices.push_back(point_infoMat);
                     h_wr_row_vec.push_back(H_rw);
                     neodraw_vec.push_back(drawPoint);
+
+                    /////// This is for de-slam. To remove points.
+#ifdef DE_SLAM_REMOVE_POINTS
+                    if(single_point_score < DE_SLAM_SCORE_THRE){
+                        inFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
+                        inFrame.mvbOutlier[i] = false;
+                        pMp->mbTrackInView = false;
+                        pMp->mnLastFrameSeen = inFrame.mnId;
+                        nmatches--;
+                    }
+#endif
+
                 }
             }
 
@@ -1135,7 +1147,7 @@ namespace ORB_SLAM2 {
 
         info_mat = infoMat_;
         float score = logDet(infoMat_);
-        LOG_S(INFO) << "info Mat score:" << score << ":"<< endl << infoMat_ ;
+//        LOG_S(INFO) << "info Mat score:" << score << ":"<< endl << infoMat_ ;
 
 //    LOG_S(INFO) << "Score computing finished. Frame" << inFrame.mnId << " Score:" << score ;
 #ifdef  TIME_DEBUG
@@ -1418,7 +1430,8 @@ namespace ORB_SLAM2 {
         LOG_S(INFO) << "Timer 3";
 #endif
 
-        neoBuildInfoMat(if_has_exframe, mCurrentFrame, mLastFrame,true, infoMat, mpwithScore_lastKey, neodraw_inframe);
+        neoBuildInfoMat_new(if_has_exframe, mCurrentFrame, mLastFrame,true, infoMat, mpwithScore_lastKey, neodraw_inframe
+                , nmatches);
 //        neoBuildInfoMat(mCurrentFrame, false, infoScore, neodraw_inframe);
 //        LOG_S(INFO) << "InfoMat Frame" << mCurrentFrame.mnId << ", Score:" << infoScore << ", nmatches:" << nmatches;
 #ifdef TIME_DEBUG
@@ -1770,7 +1783,7 @@ namespace ORB_SLAM2 {
 #ifdef TIME_DEBUG
         LOG_S(INFO) << "Timer 3";
 #endif
-        neoBuildInfoMat(if_has_exframe, mCurrentFrame, mLastFrame,true, infoMat, mpwithScore_last, neodraw_inframe);
+        neoBuildInfoMat_new( if_has_exframe, mCurrentFrame, mLastFrame,true, infoMat, mpwithScore_last, neodraw_inframe, nmatches);
         int match_before_discard = nmatches;
         float infoScore = logDet(infoMat);
 #ifdef TIME_DEBUG
@@ -1784,6 +1797,7 @@ namespace ORB_SLAM2 {
 #endif
 
         // Optimize frame pose with all matches
+//        Optimizer::neoPoseOptimization(&mCurrentFrame, neodraw_inframe); // neo de-slam
         Optimizer::PoseOptimization(&mCurrentFrame);
 
         // Discard outliers

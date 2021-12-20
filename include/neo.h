@@ -8,3 +8,10 @@
 #define NEO_RGBD_NOR_STEREO true
 #define  DISABLE_LOCALMAP true
 
+#define DE_SLAM_REMOVE_POINTS
+#define DE_SLAM_SCORE_THRE 11.f   // threshold for removing points
+
+
+#define NEO_FLIP_IMG
+
+

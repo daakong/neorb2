@@ -252,8 +252,8 @@ protected:
 
     bool neoBuildInfoMat(Frame &inFrame, bool call_from_motion_model,
                                    double& score, vector<neodraw>& neodraw_vec);
-    bool neoBuildInfoMat(bool if_has_exframe, Frame &inFrame, Frame &exFrame, bool call_from_motion_model, arma::mat & infoMat, vector<MapPointWithScore>& mp_exframe_withScore,
-                         vector<neodraw> &neodraw_vec);
+    bool neoBuildInfoMat_new(bool if_has_exframe, Frame &inFrame, Frame &exFrame, bool call_from_motion_model, arma::mat & infoMat, vector<MapPointWithScore>& mp_exframe_withScore,
+                         vector<neodraw> &neodraw_vec, int & nmatches);
 
     bool
     Computer_H_subBlock(const cv::Mat &Tcw, const arma::Row<double> &yi, arma::Mat<double> &H13,

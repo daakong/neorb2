@@ -8,9 +8,9 @@
 #include "armadillo"
 #include<opencv2/core/core.hpp>
 
-#define NEO_FLIP_IMG
 
-#define TIME_DEBUG
+//#define TIME_DEBUG // FOR TIME DEBUG
+
 
 namespace  ORB_SLAM2 {
 //
