@@ -166,6 +166,44 @@ namespace ORB_SLAM2 {
     }
 
 
+    cv::Mat Tracking::GrabImageStereo(const int frame_n, const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp,
+                                      const cv::Mat &imLastframe, const cv::Mat &imRightLastframe,
+                                      cv::Mat &imgray_LastKeyframe
+                                      ) {
+        mImGray = imRectLeft;
+        cv::Mat imGrayRight = imRectRight;
+
+        if (mImGray.channels() == 3) {
+            if (mbRGB) {
+                cvtColor(mImGray, mImGray, CV_RGB2GRAY);
+                cvtColor(imGrayRight, imGrayRight, CV_RGB2GRAY);
+            } else {
+                cvtColor(mImGray, mImGray, CV_BGR2GRAY);
+                cvtColor(imGrayRight, imGrayRight, CV_BGR2GRAY);
+            }
+        } else if (mImGray.channels() == 4) {
+            if (mbRGB) {
+                cvtColor(mImGray, mImGray, CV_RGBA2GRAY);
+                cvtColor(imGrayRight, imGrayRight, CV_RGBA2GRAY);
+            } else {
+                cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
+                cvtColor(imGrayRight, imGrayRight, CV_BGRA2GRAY);
+            }
+        }
+
+        mCurrentFrame = Frame(mImGray, imGrayRight, timestamp, mpORBextractorLeft, mpORBextractorRight, mpORBVocabulary,
+                              mK, mDistCoef, mbf, mThDepth);
+
+//        Track();
+//        neoTrack();
+        if(frame_n == 0){
+            neoRGBD_Track(false, imLastframe, imRightLastframe, imgray_LastKeyframe);
+        } else{
+            neoRGBD_Track(true, imLastframe, imRightLastframe, imgray_LastKeyframe);
+        }
+
+        return mCurrentFrame.mTcw.clone();
+    }
 
     cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp) {
         mImGray = imRectLeft;
@@ -1066,7 +1104,16 @@ namespace ORB_SLAM2 {
                     measurePosi[1] = kpUn.pt.y;
                     drawPoint.position = measurePosi;
 
-                    // arma 模式的向量，有点浪费事情，转为cv：：Mat类型
+                    //// 判断可见吗？
+                    if(measurePosi[0] < mCurrentFrame.mnMinX || measurePosi[0] > mCurrentFrame.mnMaxX)
+                        continue;
+                    if( measurePosi[1] < mCurrentFrame.mnMinY || measurePosi[1] > mCurrentFrame.mnMaxY)
+                        continue;
+
+//                    measurePosi[0] +
+//                    measurePosi[1] +
+
+                        // arma 模式的向量，有点浪费事情，转为cv：：Mat类型
 //                    arma::rowvec score_3d_lastp = arma::zeros<arma::rowvec>(3);
 ////                    float score_from_local_illum =  mp_exframe_withScore[i].GetScore_arma(score_3d_lastp);
 //                    mp_exframe_withScore[i].GetScore_arma(score_3d_lastp);
@@ -1670,10 +1717,16 @@ namespace ORB_SLAM2 {
             return false;
         }
         cv::Mat img_gray, img_grad;
-        if(if_for_KF){
+//        if(if_for_KF){
+        if(1){
             img_gray = lastimRGB;
         } else{
+            if(OIVIO_DIRECT_GRAY){
+//                cv::imwrite("/home/da/test0.png",lastimRGB);
+                cv::cvtColor(lastimRGB, img_gray, CV_RGB2GRAY);
+            }else{
             cv::cvtColor(lastimRGB, img_gray, CV_RGB2GRAY);
+            }
         }
         computeGradImg(img_gray, img_grad);
 //        cv::convertScaleAbs(tmp_img, img_grad); // 转回uint8
